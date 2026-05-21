@@ -1,0 +1,16 @@
+vcenter_hostname: "vcenter.example.com"
+vcenter_username: "administrator@vsphere.local"
+vcenter_password: "changeme"
+vcenter_validate_certs: false
+vcenter_datacenter: "Datacenter"
+
+# Filtros opcionais (podem ser usados juntos, separados ou nenhum)
+# vcenter_folder_path: "Linux"
+# vcenter_tag: "satellite-register"
+
+satellite_url: "https://satellite.example.com"
+satellite_username: "admin"
+satellite_password: "changeme"
+satellite_hostgroup: "Base"
+
+vm_ansible_user: "ansible"

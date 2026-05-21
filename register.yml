@@ -1,0 +1,101 @@
+---
+- name: Collect VMs from vCenter
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Gather VM info from folder
+      community.vmware.vmware_vm_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: "{{ vcenter_validate_certs }}"
+        folder: "/{{ vcenter_datacenter }}/vm/{{ vcenter_folder_path }}"
+        vm_type: vm
+        show_tag: "{{ vcenter_tag is defined }}"
+      register: vm_info_folder
+      failed_when: false
+      when: vcenter_folder_path is defined
+
+    - name: Folder not found
+      ansible.builtin.debug:
+        msg: "Folder '/{{ vcenter_datacenter }}/vm/{{ vcenter_folder_path }}' não encontrada, encerrando."
+      when:
+        - vcenter_folder_path is defined
+        - vm_info_folder is failed
+
+    - name: End play if folder does not exist
+      ansible.builtin.meta: end_play
+      when:
+        - vcenter_folder_path is defined
+        - vm_info_folder is failed
+
+    - name: Gather all VMs
+      community.vmware.vmware_vm_info:
+        hostname: "{{ vcenter_hostname }}"
+        username: "{{ vcenter_username }}"
+        password: "{{ vcenter_password }}"
+        validate_certs: "{{ vcenter_validate_certs }}"
+        vm_type: vm
+        show_tag: "{{ vcenter_tag is defined }}"
+      register: vm_info_all
+      when: vcenter_folder_path is not defined
+
+    - name: Set base VM list
+      ansible.builtin.set_fact:
+        base_vms: "{{ (vm_info_folder.virtual_machines | default([])) + (vm_info_all.virtual_machines | default([])) }}"
+
+    - name: Build in-memory inventory from VMware Tools IPs
+      ansible.builtin.add_host:
+        name: "{{ item.guest_name }}"
+        ansible_host: "{{ item.ip_address }}"
+        ansible_user: "{{ vm_ansible_user }}"
+        vcenter_folder: "{{ item.folder | default('') }}"
+        groups: vcenter_vms
+      loop: "{{ base_vms }}"
+      when:
+        - item.ip_address is defined and item.ip_address | length > 0
+        - "'Red Hat Enterprise Linux' in (item.guest_fullname | default(''))"
+        - vcenter_tag is not defined or vcenter_tag in (item.tags | default([]) | map(attribute='name') | list)
+      loop_control:
+        label: "{{ item.guest_name }} ({{ item.ip_address | default('sem IP') }})"
+
+    - name: Show discovered VMs
+      ansible.builtin.debug:
+        msg: "{{ groups['vcenter_vms'] | default([]) }}"
+
+- name: Register VMs on Red Hat Satellite
+  hosts: vcenter_vms
+  gather_facts: false
+  become: true
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: Unregister from current subscription
+      ansible.builtin.command:
+        cmd: subscription-manager unregister
+      failed_when: false
+
+    - name: Clean subscription data
+      ansible.builtin.command:
+        cmd: subscription-manager clean
+      failed_when: false
+
+    - name: Generate registration command
+      redhat.satellite.registration_command:
+        username: "{{ satellite_username }}"
+        password: "{{ satellite_password }}"
+        server_url: "{{ satellite_url }}"
+        insecure: true
+        validate_certs: true
+        force: true
+        hostgroup: "{{ satellite_hostgroup }}"
+      register: command
+      delegate_to: localhost
+
+    - name: Perform registration
+      ansible.builtin.shell:
+        cmd: "{{ command.registration_command }}"
