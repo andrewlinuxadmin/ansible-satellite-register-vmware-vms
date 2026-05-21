@@ -4,6 +4,7 @@
   connection: local
   become: false
   gather_facts: false
+  tags: always
   vars_files:
     - vars.yml
   tasks:
@@ -71,6 +72,7 @@
   hosts: vcenter_vms
   gather_facts: false
   become: true
+  tags: register
   vars_files:
     - vars.yml
   tasks:
