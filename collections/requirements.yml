@@ -1,3 +1,5 @@
 ---
 collections:
   - name: community.vmware
+  - name: redhat.satellite
+    version: ">=3.0.0,<6.0.0"
