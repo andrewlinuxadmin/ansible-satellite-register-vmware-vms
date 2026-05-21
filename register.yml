@@ -7,13 +7,18 @@
   tags: always
   vars_files:
     - vars.yml
+  vars:
+    vcenter_host: "{{ vcenter_hostname | default(lookup('env', 'VMWARE_HOST')) }}"
+    vcenter_user: "{{ vcenter_username | default(lookup('env', 'VMWARE_USER')) }}"
+    vcenter_pass: "{{ vcenter_password | default(lookup('env', 'VMWARE_PASSWORD')) }}"
+    vcenter_certs: "{{ vcenter_validate_certs | default(lookup('env', 'VMWARE_VALIDATE_CERTS') | default(false)) }}"
   tasks:
     - name: Gather VM info from folder
       community.vmware.vmware_vm_info:
-        hostname: "{{ vcenter_hostname }}"
-        username: "{{ vcenter_username }}"
-        password: "{{ vcenter_password }}"
-        validate_certs: "{{ vcenter_validate_certs }}"
+        hostname: "{{ vcenter_host }}"
+        username: "{{ vcenter_user }}"
+        password: "{{ vcenter_pass }}"
+        validate_certs: "{{ vcenter_certs }}"
         folder: "/{{ vcenter_datacenter }}/vm/{{ vcenter_folder_path }}"
         vm_type: vm
         show_tag: "{{ vcenter_tag is defined }}"
@@ -36,10 +41,10 @@
 
     - name: Gather all VMs
       community.vmware.vmware_vm_info:
-        hostname: "{{ vcenter_hostname }}"
-        username: "{{ vcenter_username }}"
-        password: "{{ vcenter_password }}"
-        validate_certs: "{{ vcenter_validate_certs }}"
+        hostname: "{{ vcenter_host }}"
+        username: "{{ vcenter_user }}"
+        password: "{{ vcenter_pass }}"
+        validate_certs: "{{ vcenter_certs }}"
         vm_type: vm
         show_tag: "{{ vcenter_tag is defined }}"
       register: vm_info_all

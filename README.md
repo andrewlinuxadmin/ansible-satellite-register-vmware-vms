@@ -43,10 +43,10 @@ Edite o arquivo `vars.yml` com os dados do seu ambiente:
 
 | Variável | Descrição | Obrigatória |
 |---|---|---|
-| `vcenter_hostname` | Hostname ou IP do vCenter | Sim |
-| `vcenter_username` | Usuário do vCenter | Sim |
-| `vcenter_password` | Senha do vCenter | Sim |
-| `vcenter_validate_certs` | Validar certificados SSL do vCenter | Sim |
+| `vcenter_hostname` | Hostname ou IP do vCenter | Sim* |
+| `vcenter_username` | Usuário do vCenter | Sim* |
+| `vcenter_password` | Senha do vCenter | Sim* |
+| `vcenter_validate_certs` | Validar certificados SSL do vCenter | Não |
 | `vcenter_datacenter` | Nome do datacenter no vCenter | Sim |
 | `vcenter_folder_path` | Nome da folder de VMs (ex: `Linux`) | Não |
 | `vcenter_tag` | Nome da tag para filtrar VMs | Não |
@@ -55,6 +55,8 @@ Edite o arquivo `vars.yml` com os dados do seu ambiente:
 | `satellite_password` | Senha do Satellite | Sim |
 | `satellite_hostgroup` | Host group para registro | Sim |
 | `vm_ansible_user` | Usuário SSH para acessar as VMs | Sim |
+
+\* As credenciais do vCenter podem ser fornecidas via `vars.yml` ou via credential do tipo **VMware vCenter** no AAP. Quando a credential está configurada no AAP, as variáveis de ambiente `VMWARE_HOST`, `VMWARE_USER` e `VMWARE_PASSWORD` são injetadas automaticamente e usadas como fallback.
 
 ### Filtros opcionais
 
