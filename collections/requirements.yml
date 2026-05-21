@@ -2,3 +2,4 @@
 collections:
   - name: community.vmware
   - name: redhat.satellite
+    version: "5.11.0"
