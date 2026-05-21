@@ -1,6 +1,6 @@
 # Ansible Satellite Register VMware VMs
 
-Playbook Ansible que conecta ao VMware vCenter, descobre VMs e as registra automaticamente no Red Hat Satellite.
+Playbook Ansible que conecta ao VMware vCenter, descobre VMs **Red Hat Enterprise Linux** e as registra automaticamente no **Red Hat Satellite**. Apenas VMs RHEL com VMware Tools ativo e IP válido são processadas.
 
 ## Como funciona
 
