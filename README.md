@@ -13,15 +13,17 @@ Playbook Ansible que conecta ao VMware vCenter, descobre VMs e as registra autom
 ## Estrutura
 
 ```
-├── register.yml                # Playbook principal
-├── vars.yml                    # Variáveis de configuração
-└── collections/
-    └── requirements.yml        # Collections Ansible requeridas
+├── register.yml                    # Playbook principal
+├── vars.yml                        # Variáveis de configuração
+├── collections/
+│   └── requirements.yml            # Collections Ansible requeridas
+└── ee/
+    └── execution-environment.yml   # Definição do Execution Environment
 ```
 
 ## Requisitos
 
-- ansible-core >= 2.14
+- ansible-core >= 2.16
 - Acesso ao vCenter com permissões de leitura
 - Acesso ao Red Hat Satellite com permissões de registro
 - VMware Tools instalado e rodando nas VMs alvo
@@ -67,6 +69,54 @@ Os filtros `vcenter_folder_path` e `vcenter_tag` podem ser usados juntos, separa
 
 Se a folder especificada não existir, o playbook encerra sem erro.
 
+### Tags
+
+O playbook usa tags para permitir execução parcial:
+
+| Comando | Comportamento |
+|---|---|
+| `ansible-playbook register.yml` | Executa tudo (descoberta + registro) |
+| `ansible-playbook register.yml --skip-tags register` | Apenas descoberta de VMs |
+
+No AAP, configure **Skip Tags: `register`** no Job Template para rodar apenas a descoberta.
+
+## Execution Environment
+
+O EE padrão do AAP não inclui a biblioteca `pyVmomi`, necessária para os módulos `community.vmware`. É preciso construir um EE customizado.
+
+### Pré-requisitos
+
+- `ansible-builder` instalado (`pip install ansible-builder`)
+- `podman` instalado
+- Acesso ao registry `registry.redhat.io` (`podman login registry.redhat.io`)
+
+### Build do EE
+
+```bash
+cd ee
+ansible-builder build -t acarlos-pyvmomi:latest -f execution-environment.yml -v3
+```
+
+A imagem é baseada em `ee-minimal-rhel9` (AAP 2.5, ansible-core 2.16) com `pyVmomi` adicionado.
+
+### Push para o Private Automation Hub
+
+```bash
+podman tag acarlos-pyvmomi:latest <registry-do-aap>/acarlos-pyvmomi:latest
+podman login <registry-do-aap>
+podman push <registry-do-aap>/acarlos-pyvmomi:latest
+```
+
+Substitua `<registry-do-aap>` pela URL do registry do seu Private Automation Hub.
+
+### Registro no AAP
+
+Após o push, o EE aparece em **Automation Content > Execution Environments**. Caso não apareça, crie manualmente:
+
+1. Vá em **Automation Content > Execution Environments**
+2. Clique em **Create execution environment**
+3. Preencha **Name** e **Image** com `<registry-do-aap>/acarlos-pyvmomi:latest`
+
 ## Execução
 
 ### Local
@@ -78,10 +128,14 @@ ansible-playbook register.yml
 ### Red Hat Ansible Automation Platform
 
 1. Configure o projeto apontando para este repositório
-2. As collections serão instaladas automaticamente no sync
-3. Crie um Job Template usando o playbook `register.yml`
-4. Defina as variáveis no template ou via survey
-5. Use o Execution Environment `ee-supported-rhel9`
+2. Construa e publique o EE customizado (ver seção acima)
+3. Configure as **Galaxy Credentials** na organização:
+   - **1o**: Automation Hub (para `redhat.satellite`)
+   - **2o**: Ansible Galaxy (para `community.vmware`)
+4. As collections serão instaladas automaticamente no sync do projeto
+5. Crie um Job Template usando o playbook `register.yml`
+6. Selecione o EE `acarlos-pyvmomi` no template
+7. Defina as variáveis no template ou via survey
 
 ## Segurança
 
